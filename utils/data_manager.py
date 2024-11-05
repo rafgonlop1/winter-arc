@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from datetime import datetime, timedelta
 
@@ -7,7 +8,7 @@ from utils.database import SessionLocal, Activity, User
 def cargar_datos():
     if not os.path.exists('data'):
         os.makedirs('data')
-    
+
     if not os.path.exists(DATA_FILE):
         df = pd.DataFrame(columns=[
             'Usuario',
@@ -20,16 +21,19 @@ def cargar_datos():
         ])
         df.to_csv(DATA_FILE, index=False)
         return df
-    
+
     return pd.read_csv(DATA_FILE)
+
 
 def guardar_datos(df):
     df.to_csv(DATA_FILE, index=False)
 
+
 def get_week_dates():
     today = datetime.now()
-    return [(today - timedelta(days=x)).strftime('%Y-%m-%d') 
+    return [(today - timedelta(days=x)).strftime('%Y-%m-%d')
             for x in range(6, -1, -1)]
+
 
 def asignar_rango(puntos):
     if puntos >= 120:
