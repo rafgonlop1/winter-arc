@@ -59,12 +59,24 @@ def main():
     - 😴 Descanso o Recuperación
     - 📖 Desarrollo Personal
     
-    #### 🥋 Rangos Ninja:
-    - Estudiante de la Academia (0-30 puntos/mes)
-    - Genin (31-60 puntos/mes)
-    - Chunin (61-90 puntos/mes)
-    - Jounin (91-110 puntos/mes)
-    - Sannin Legendario (111+ puntos/mes)
+    #### 🥋 Rangos Ninja Mensuales:
+    - 👨‍🎓 Estudiante de la Academia (0-30 puntos/mes)
+      *Participación ocasional, ideal para principiantes*
+    
+    - 🥋 Genin (31-60 puntos/mes)
+      *Participación moderada y constante*
+    
+    - 🎯 Chunin (61-90 puntos/mes)
+      *Compromiso sólido, 2-3 actividades diarias*
+    
+    - ⚔️ Jounin (91-110 puntos/mes)
+      *Alto nivel de disciplina y enfoque*
+    
+    - 🏆 Sannin Legendario (111-119 puntos/mes)
+      *Élite, casi perfección*
+    
+    - 👑 Hokage (120 puntos/mes)
+      *Perfección absoluta, todas las actividades todos los días*
     
     Navega por las páginas en la barra lateral para acceder a todas las funcionalidades.
     """)
