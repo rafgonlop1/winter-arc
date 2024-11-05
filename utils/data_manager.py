@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 
 from utils.database import SessionLocal, Activity, User
 
+DATA_FILE = 'data/registros.csv'
+
 
 def cargar_datos():
     if not os.path.exists('data'):
