@@ -1,18 +1,19 @@
 [tool.poetry]
 name = "winter-arc"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["rafgonlop1 <rafaelbenzal96@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 streamlit = "^1.24.0"
-pandas = "^2.0.3"
-plotly = "^5.15.0"
-python-dotenv = "^1.0.0"
-sqlalchemy = "^2.0.0"
-psycopg2-binary = "^2.9.9"
+plotly = "^5.24.1"
+pandas = "^2.2.3"
+python-dotenv = "^1.0.1"
+sqlalchemy = "^2.0.36"
+psycopg2-binary = "^2.9.10"
+toml = "^0.10.2"
 
 
 [build-system]

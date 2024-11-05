@@ -1,15 +1,27 @@
-import streamlit as st
-from utils.user_manager import get_users, add_user
-from utils.settings import APP_CONFIG
-from utils.data_manager import cargar_datos
-import pandas as pd
 import io
+import pandas as pd
+import streamlit as st
+import toml
+from pathlib import Path
+
+from utils.data_manager import cargar_datos
+from utils.settings import APP_CONFIG
+from utils.user_manager import get_users, add_user
+
+# Leer versión del pyproject.toml
+try:
+    pyproject_path = Path(__file__).parent / "pyproject.toml"
+    pyproject_data = toml.load(pyproject_path)
+    VERSION = pyproject_data["tool"]["poetry"]["version"]
+except Exception:
+    VERSION = "0.1.0"  # Versión por defecto si no se puede leer el archivo
 
 st.set_page_config(
     page_title=APP_CONFIG["title"],
     page_icon=APP_CONFIG["icon"],
     layout=APP_CONFIG["layout"]
 )
+
 
 def download_data():
     """Función para descargar los datos en formato CSV"""
@@ -22,14 +34,15 @@ def download_data():
         return buffer.getvalue().decode()
     return None
 
+
 def user_selector():
     if 'usuario' not in st.session_state:
         st.session_state.usuario = None
-        
+
     users_df = get_users()
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("Usuario Existente")
         if not users_df.empty:
@@ -39,7 +52,7 @@ def user_selector():
             )
             if selected_user:
                 st.session_state.usuario = selected_user
-                
+
     with col2:
         st.subheader("Nuevo Usuario")
         new_username = st.text_input("Crear nuevo usuario")
@@ -52,10 +65,11 @@ def user_selector():
                 else:
                     st.error("Este nombre de usuario ya existe")
 
+
 def main():
     st.title("❄️ Winter Arc Tracker")
-    
-    # Sidebar con botón de descarga
+
+    # Sidebar con botón de descarga y versión
     with st.sidebar:
         st.title("Opciones")
         csv_data = download_data()
@@ -69,15 +83,19 @@ def main():
             )
         else:
             st.info("No hay datos disponibles para descargar")
-    
+
+        # Mostrar versión en la parte inferior del sidebar
+        st.markdown("---")
+        st.caption(f"v{VERSION}")
+
     user_selector()
-    
+
     if not st.session_state.usuario:
         st.warning("Por favor, selecciona o crea un usuario para continuar")
         return
-        
+
     st.success(f"¡Bienvenido, {st.session_state.usuario}! 🎉")
-    
+
     st.markdown("""
     ### Bienvenido a Winter Arc Tracker
     
@@ -111,5 +129,6 @@ def main():
     Navega por las páginas en la barra lateral para acceder a todas las funcionalidades.
     """)
 
+
 if __name__ == "__main__":
-    main() 
+    main()
