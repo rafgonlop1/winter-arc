@@ -1,11 +1,26 @@
 import streamlit as st
 from utils.user_manager import get_users, add_user
+from utils.settings import APP_CONFIG
+from utils.data_manager import cargar_datos
+import pandas as pd
+import io
 
 st.set_page_config(
-    page_title="Winter Arc Tracker",
-    page_icon="❄️",
-    layout="wide"
+    page_title=APP_CONFIG["title"],
+    page_icon=APP_CONFIG["icon"],
+    layout=APP_CONFIG["layout"]
 )
+
+def download_data():
+    """Función para descargar los datos en formato CSV"""
+    df = cargar_datos()
+    if not df.empty:
+        # Crear buffer en memoria para el CSV
+        buffer = io.BytesIO()
+        df.to_csv(buffer, index=False)
+        buffer.seek(0)
+        return buffer.getvalue().decode()
+    return None
 
 def user_selector():
     if 'usuario' not in st.session_state:
@@ -39,6 +54,21 @@ def user_selector():
 
 def main():
     st.title("❄️ Winter Arc Tracker")
+    
+    # Sidebar con botón de descarga
+    with st.sidebar:
+        st.title("Opciones")
+        csv_data = download_data()
+        if csv_data is not None:
+            st.download_button(
+                label="📥 Descargar Datos",
+                data=csv_data,
+                file_name="winter_arc_data.csv",
+                mime="text/csv",
+                help="Descarga todos los registros en formato CSV"
+            )
+        else:
+            st.info("No hay datos disponibles para descargar")
     
     user_selector()
     
