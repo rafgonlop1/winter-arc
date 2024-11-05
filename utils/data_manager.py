@@ -1,7 +1,8 @@
 import pandas as pd
-import os
+from datetime import datetime, timedelta
 
-DATA_FILE = 'data/registros.csv'
+from utils.database import SessionLocal, Activity, User
+
 
 def cargar_datos():
     if not os.path.exists('data'):
