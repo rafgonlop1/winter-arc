@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import toml
 from pathlib import Path
+import zipfile
 
 from utils.data_manager import cargar_datos
 from utils.settings import APP_CONFIG
@@ -24,15 +25,27 @@ st.set_page_config(
 
 
 def download_data():
-    """Función para descargar los datos en formato CSV"""
-    df = cargar_datos()
-    if not df.empty:
-        # Crear buffer en memoria para el CSV
-        buffer = io.BytesIO()
-        df.to_csv(buffer, index=False)
-        buffer.seek(0)
-        return buffer.getvalue().decode()
-    return None
+    """Función para descargar los datos en formato ZIP"""
+    # Crear un buffer en memoria para el ZIP
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Añadir registros.csv
+        df_registros = cargar_datos()
+        if not df_registros.empty:
+            registros_buffer = io.StringIO()
+            df_registros.to_csv(registros_buffer, index=False)
+            zip_file.writestr('registros.csv', registros_buffer.getvalue())
+        
+        # Añadir users.csv
+        df_users = get_users()
+        if not df_users.empty:
+            users_buffer = io.StringIO()
+            df_users.to_csv(users_buffer, index=False)
+            zip_file.writestr('users.csv', users_buffer.getvalue())
+    
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
 
 
 def user_selector():
@@ -72,14 +85,14 @@ def main():
     # Sidebar con botón de descarga y versión
     with st.sidebar:
         st.title("Opciones")
-        csv_data = download_data()
-        if csv_data is not None:
+        zip_data = download_data()
+        if zip_data is not None:
             st.download_button(
                 label="📥 Descargar Datos",
-                data=csv_data,
-                file_name="winter_arc_data.csv",
-                mime="text/csv",
-                help="Descarga todos los registros en formato CSV"
+                data=zip_data,
+                file_name="winter_arc_data.zip",
+                mime="application/zip",
+                help="Descarga todos los registros y usuarios en formato ZIP"
             )
         else:
             st.info("No hay datos disponibles para descargar")
