@@ -34,6 +34,7 @@ def get_users_with_gaps(df):
             users_with_gaps.append({
                 'username': username,
                 'missing_days': len(missing_dates),
+                'missing_dates': sorted(missing_dates),  # Añadimos las fechas específicas
                 'first_date': first_date.strftime('%Y-%m-%d'),
                 'last_date': last_date.strftime('%Y-%m-%d')
             })
@@ -58,10 +59,11 @@ def main():
     if users_with_gaps:
         st.warning("⚠️ Usuarios con días sin registrar:")
         for user in users_with_gaps:
-            st.info(
-                f"👤 {user['username']} tiene {user['missing_days']} días sin registros "
-                f"entre {user['first_date']} y {user['last_date']}"
-            )
+            with st.expander(f"👤 {user['username']} - {user['missing_days']} días sin registros"):
+                st.write("📅 Período:", user['first_date'], "hasta", user['last_date'])
+                st.write("📝 Días pendientes de registrar:")
+                for date in user['missing_dates']:
+                    st.write(f"- {date.strftime('%Y-%m-%d')}")
         st.markdown("---")
 
     # Calcular puntos totales por usuario para el mes actual
@@ -82,25 +84,87 @@ def main():
     )
 
     if not puntos_usuarios.empty:
-        # Gráfico de barras de puntos por usuario
+        # Gráfico de barras mejorado con más detalles
         fig = px.bar(
             puntos_usuarios,
             x='Usuario',
             y='Puntos',
             color='Rango',
             title=f'Puntos por Usuario - {datetime.now().strftime("%B %Y")}',
-            labels={'Usuario': 'Ninja', 'Puntos': 'Puntos del Mes'}
+            labels={'Usuario': 'Ninja', 'Puntos': 'Puntos del Mes'},
+            text='Puntos',  # Mostrar valores en las barras
+            color_discrete_sequence=px.colors.qualitative.Set3  # Paleta de colores más atractiva
         )
+        fig.update_traces(textposition='outside')  # Valores fuera de las barras
         st.plotly_chart(fig)
 
-        # Distribución de rangos
-        st.header("📊 Distribución de Rangos")
-        fig_pie = px.pie(
-            puntos_usuarios,
-            names='Rango',
-            title='Distribución de Rangos entre Usuarios'
+        # Tendencia de puntos acumulados
+        st.header("📈 Progreso del Mes")
+        
+        # Crear un DataFrame con todas las combinaciones de fechas y usuarios
+        all_dates = pd.date_range(df_mes['Fecha'].min(), df_mes['Fecha'].max(), freq='D')
+        all_users = df_mes['Usuario'].unique()
+        date_user_combinations = pd.MultiIndex.from_product(
+            [all_dates, all_users], 
+            names=['Fecha', 'Usuario']
         )
-        st.plotly_chart(fig_pie)
+        
+        # Crear DataFrame base con todas las combinaciones
+        daily_points = pd.DataFrame(index=date_user_combinations).reset_index()
+        
+        # Merge con los puntos reales
+        points_data = df_mes.groupby(['Fecha', 'Usuario'])['Puntos'].sum().reset_index()
+        daily_points = daily_points.merge(
+            points_data, 
+            on=['Fecha', 'Usuario'], 
+            how='left'
+        )
+        
+        # Rellenar NaN con 0
+        daily_points['Puntos'] = daily_points['Puntos'].fillna(0)
+        
+        # Ordenar y calcular acumulados
+        daily_points = daily_points.sort_values(['Usuario', 'Fecha'])
+        daily_points['Puntos_Acumulados'] = daily_points.groupby('Usuario')['Puntos'].cumsum()
+        
+        fig_line = px.line(
+            daily_points,
+            x='Fecha',
+            y='Puntos_Acumulados',
+            color='Usuario',
+            title='Progreso Acumulado del Mes',
+            labels={
+                'Fecha': 'Día', 
+                'Puntos_Acumulados': 'Puntos Acumulados',
+                'Usuario': 'Ninja'
+            }
+        )
+        fig_line.update_traces(mode='lines+markers')
+        fig_line.update_layout(
+            hovermode='x unified',
+            yaxis_title="Puntos Totales"
+        )
+        st.plotly_chart(fig_line)
+
+        # Heatmap de actividad
+        st.header("📅 Mapa de Calor - Actividad")
+        heatmap_data = df_mes.pivot_table(
+            values='Puntos',
+            index='Usuario',
+            columns=df_mes['Fecha'].dt.strftime('%d'),
+            aggfunc='sum',
+            fill_value=0
+        )
+        fig_heat = px.imshow(
+            heatmap_data,
+            title='Actividad Diaria por Usuario',
+            labels=dict(x="Día del Mes", y="Usuario", color="Puntos"),
+            color_continuous_scale="Viridis"
+        )
+        st.plotly_chart(fig_heat)
+
+        # Eliminar el gráfico de pie de distribución de rangos ya que es menos informativo
+        
     else:
         st.info("No hay registros para este mes")
 

@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # Cargar variables de entorno
-load_dotenv()
+load_dotenv(override=True)
 
 # Configuración de Base de Datos
 DB_CONFIG = {

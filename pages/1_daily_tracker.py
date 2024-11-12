@@ -3,7 +3,7 @@ import plotly.express as px
 import streamlit as st
 from datetime import datetime
 
-from utils.data_manager import cargar_datos, guardar_datos
+from utils.data_manager import cargar_datos, guardar_datos, get_week_dates
 
 
 def mostrar_historial(df, usuario, fecha_actual):
@@ -16,32 +16,80 @@ def mostrar_historial(df, usuario, fecha_actual):
     df_usuario = df_usuario.sort_values('Fecha', ascending=False)
 
     # Mostrar los últimos 7 días
-    ultimos_registros = df_usuario.head(7)
+    ultimos_registros = df_usuario.head(7).copy()
 
     if not ultimos_registros.empty:
-        # Crear una tabla más legible
-        tabla_registros = ultimos_registros.copy()
-        tabla_registros['Actividades Completadas'] = tabla_registros.apply(
-            lambda row: ", ".join([
-                "Actividad Física" if row['Actividad Física'] else "",
-                "Dieta y Nutrición" if row['Dieta y Nutrición'] else "",
-                "Descanso" if row['Descanso o Recuperación'] else "",
-                "Desarrollo Personal" if row['Desarrollo Personal'] else ""
-            ]).strip(", ") or "Ninguna",
-            axis=1
+        # Preparar datos para el gráfico de barras apiladas
+        actividades = ['Actividad Física', 'Dieta y Nutrición', 'Descanso o Recuperación', 'Desarrollo Personal']
+        ultimos_registros = ultimos_registros.sort_values('Fecha')  # Ordenar cronológicamente
+        
+        # Convertir las columnas booleanas a numéricas (0 o 1)
+        for actividad in actividades:
+            ultimos_registros[actividad] = ultimos_registros[actividad].astype(int)
+        
+        # Crear gráfico de barras apiladas
+        fig = px.bar(
+            ultimos_registros,
+            x='Fecha',
+            y=actividades,
+            title='Actividades Completadas por Día',
+            labels={'value': 'Completada', 'variable': 'Actividad'},
+            color_discrete_sequence=['#FF9999', '#66B2FF', '#99FF99', '#FFCC99']
         )
+        
+        # Formatear el eje x para mostrar fechas más legibles
+        fig.update_xaxes(tickformat='%d/%m/%Y')
+        st.plotly_chart(fig)
 
-        st.dataframe(
-            tabla_registros[['Fecha', 'Actividades Completadas', 'Puntos']],
-            column_config={
-                "Fecha": "Fecha",
-                "Actividades Completadas": "Actividades Completadas",
-                "Puntos": "Puntos del Día"
-            },
-            hide_index=True
+
+def mostrar_estadisticas_semanales(df, usuario):
+    """Muestra las estadísticas semanales del usuario"""
+    st.header("📊 Estadísticas Semanales")
+    
+    df_usuario = df[df['Usuario'] == usuario]
+    
+    # Obtener fechas de la semana actual
+    fechas_semana = get_week_dates()
+    
+    # Crear DataFrame con todos los días de la semana
+    df_semana = pd.DataFrame({'Fecha': fechas_semana})
+    df_puntos = df_usuario[['Fecha', 'Puntos']].copy()
+    df_semana = df_semana.merge(df_puntos, on='Fecha', how='left')
+    df_semana['Puntos'] = df_semana['Puntos'].fillna(0)
+    
+    # Calcular puntos acumulados
+    df_semana['Puntos Acumulados'] = df_semana['Puntos'].cumsum()
+
+    # Crear dos gráficos en columnas
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Gráfico de barras para puntos por día
+        fig_barras = px.bar(
+            df_semana,
+            x='Fecha',
+            y='Puntos',
+            title='Puntos por Día',
+            labels={'Fecha': 'Día', 'Puntos': 'Puntos Obtenidos'}
         )
-    else:
-        st.info("Aún no tienes registros")
+        st.plotly_chart(fig_barras)
+
+    with col2:
+        # Gráfico de línea para puntos acumulados
+        fig_acumulado = px.line(
+            df_semana,
+            x='Fecha',
+            y='Puntos Acumulados',
+            title='Puntos Acumulados en la Semana',
+            labels={'Fecha': 'Día', 'Puntos Acumulados': 'Puntos Totales'}
+        )
+        fig_acumulado.add_scatter(
+            x=df_semana['Fecha'],
+            y=df_semana['Puntos Acumulados'],
+            mode='markers',
+            showlegend=False
+        )
+        st.plotly_chart(fig_acumulado)
 
 
 def main():
@@ -112,9 +160,11 @@ def main():
         st.success("Registro guardado exitosamente")
         st.rerun()
 
-    # Mostrar historial de registros
+    # Mostrar historial y estadísticas
     st.markdown("---")
     mostrar_historial(df, st.session_state.usuario, fecha)
+    st.markdown("---")
+    mostrar_estadisticas_semanales(df, st.session_state.usuario)
 
 
 if __name__ == "__main__":
