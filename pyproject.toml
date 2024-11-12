@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "winter-arc"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = ["rafgonlop1 <rafaelbenzal96@gmail.com>"]
 readme = "README.md"

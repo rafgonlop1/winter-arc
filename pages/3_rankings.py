@@ -66,23 +66,62 @@ def main():
                     st.write(f"- {date.strftime('%Y-%m-%d')}")
         st.markdown("---")
 
-    # Calcular puntos totales por usuario para el mes actual
-    puntos_usuarios = df_mes.groupby('Usuario')['Puntos'].sum().reset_index()
-    puntos_usuarios['Rango'] = puntos_usuarios['Puntos'].apply(asignar_rango)
-    puntos_usuarios = puntos_usuarios.sort_values('Puntos', ascending=False)
+    # Rankings por tipo de actividad
+    st.header("🎯 Rankings por Actividad")
+    actividades = ['Ranking General', 'Actividad Física', 'Dieta y Nutrición', 'Descanso o Recuperación', 'Desarrollo Personal']
+    
+    # Crear tabs para cada tipo de actividad
+    tabs = st.tabs([f"📊 {actividad}" for actividad in actividades])
+    
+    # Ranking General
+    with tabs[0]:
+        st.subheader(f"Ranking General - {datetime.now().strftime('%B %Y')}")
+        puntos_usuarios = df_mes.groupby('Usuario')['Puntos'].sum().reset_index()
+        puntos_usuarios['Rango'] = puntos_usuarios['Puntos'].apply(asignar_rango)
+        puntos_usuarios = puntos_usuarios.sort_values('Puntos', ascending=False)
+        
+        st.dataframe(
+            puntos_usuarios,
+            column_config={
+                "Usuario": "Ninja",
+                "Puntos": "Puntos del Mes",
+                "Rango": "Rango Actual"
+            },
+            hide_index=True
+        )
 
-    # Mostrar tabla de rankings
-    st.header(f"🎯 Tabla de Rankings - {datetime.now().strftime('%B %Y')}")
-    st.dataframe(
-        puntos_usuarios,
-        column_config={
-            "Usuario": "Ninja",
-            "Puntos": "Puntos del Mes",
-            "Rango": "Rango Actual"
-        },
-        hide_index=True
-    )
+    # Rankings por actividad
+    for tab, actividad in zip(tabs[1:], actividades[1:]):
+        with tab:
+            # Filtrar datos por actividad y sumar los True
+            df_actividad = df_mes.groupby('Usuario')[actividad].sum().reset_index()
+            df_actividad = df_actividad.sort_values(actividad, ascending=False)
+            
+            # Mostrar tabla de ranking para esta actividad
+            st.subheader(f"Ranking - {actividad}")
+            st.dataframe(
+                df_actividad,
+                column_config={
+                    "Usuario": "Ninja",
+                    actividad: f"Puntos en {actividad}"
+                },
+                hide_index=True
+            )
+            
+            # Gráfico de barras para esta actividad
+            fig_actividad = px.bar(
+                df_actividad,
+                x='Usuario',
+                y=actividad,
+                title=f'Puntos por Usuario en {actividad}',
+                labels={'Usuario': 'Ninja', actividad: 'Puntos'},
+                text=actividad,
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
+            fig_actividad.update_traces(textposition='outside')
+            st.plotly_chart(fig_actividad)
 
+    # Gráficos adicionales
     if not puntos_usuarios.empty:
         # Gráfico de barras mejorado con más detalles
         fig = px.bar(
@@ -163,8 +202,6 @@ def main():
         )
         st.plotly_chart(fig_heat)
 
-        # Eliminar el gráfico de pie de distribución de rangos ya que es menos informativo
-        
     else:
         st.info("No hay registros para este mes")
 
