@@ -198,7 +198,9 @@ def main():
             heatmap_data,
             title='Actividad Diaria por Usuario',
             labels=dict(x="Día del Mes", y="Usuario", color="Puntos"),
-            color_continuous_scale="Viridis"
+            color_continuous_scale="Viridis",
+            zmin=0,  # Establecer el mínimo del rango
+            zmax=4   # Establecer el máximo del rango
         )
         st.plotly_chart(fig_heat)
 
