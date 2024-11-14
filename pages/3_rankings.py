@@ -5,6 +5,7 @@ import plotly.express as px
 import streamlit as st
 
 from utils.data_manager import cargar_datos, asignar_rango
+from utils.weight_manager import load_weight_records
 
 
 def get_users_with_gaps(df):
@@ -93,6 +94,21 @@ def main():
             hide_index=True
         )
 
+        # Mover el gráfico general aquí dentro del tab
+        if not puntos_usuarios.empty:
+            fig = px.bar(
+                puntos_usuarios,
+                x='Usuario',
+                y='Puntos',
+                color='Rango',
+                title=f'Puntos por Usuario - {datetime.now().strftime("%B %Y")}',
+                labels={'Usuario': 'Ninja', 'Puntos': 'Puntos del Mes'},
+                text='Puntos',
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
+            fig.update_traces(textposition='outside')
+            st.plotly_chart(fig)
+
     # Rankings por actividad
     for tab, actividad in zip(tabs[1:], actividades[1:]):
         with tab:
@@ -124,91 +140,68 @@ def main():
             fig_actividad.update_traces(textposition='outside')
             st.plotly_chart(fig_actividad)
 
-    # Gráficos adicionales
-    if not puntos_usuarios.empty:
-        # Gráfico de barras mejorado con más detalles
-        fig = px.bar(
-            puntos_usuarios,
-            x='Usuario',
-            y='Puntos',
-            color='Rango',
-            title=f'Puntos por Usuario - {datetime.now().strftime("%B %Y")}',
-            labels={'Usuario': 'Ninja', 'Puntos': 'Puntos del Mes'},
-            text='Puntos',  # Mostrar valores en las barras
-            color_discrete_sequence=px.colors.qualitative.Set3  # Paleta de colores más atractiva
+    # Añadir después de los rankings existentes
+    st.markdown("---")
+    st.header("⚖️ Progreso de Peso Grupal")
+
+    weight_records = load_weight_records()
+    if not weight_records.empty:
+        weight_records['date'] = pd.to_datetime(weight_records['date'])
+        weight_records = weight_records.sort_values('date')  # Ordenar por fecha
+        
+        # Obtener el primer y último registro de peso para cada usuario
+        latest_weights = weight_records.sort_values('date').groupby('username').agg({
+            'weight': ['first', 'last'],
+            'date': ['first', 'last']
+        }).reset_index()
+        
+        latest_weights.columns = ['username', 'initial_weight', 'current_weight', 'start_date', 'end_date']
+        latest_weights['weight_change'] = latest_weights['current_weight'] - latest_weights['initial_weight']
+        latest_weights['days_tracked'] = (latest_weights['end_date'] - latest_weights['start_date']).dt.days
+        
+        # Mostrar tabla de progreso
+        st.dataframe(
+            latest_weights,
+            column_config={
+                "username": "Ninja",
+                "initial_weight": "Peso Inicial (kg)",
+                "current_weight": "Peso Actual (kg)",
+                "weight_change": "Cambio (kg)",
+                "days_tracked": "Días de Seguimiento"
+            },
+            hide_index=True
         )
-        fig.update_traces(textposition='outside')  # Valores fuera de las barras
-        st.plotly_chart(fig)
-
-        # Tendencia de puntos acumulados
-        st.header("📈 Progreso del Mes")
-
-        # Crear un DataFrame con todas las combinaciones de fechas y usuarios
-        all_dates = pd.date_range(df_mes['Fecha'].min(), df_mes['Fecha'].max(), freq='D')
-        all_users = df_mes['Usuario'].unique()
-        date_user_combinations = pd.MultiIndex.from_product(
-            [all_dates, all_users],
-            names=['Fecha', 'Usuario']
+        
+        # Gráfico de progreso grupal con fechas ordenadas
+        fig = px.line(
+            weight_records,
+            x='date',
+            y='weight',
+            color='username',
+            title='Progreso de Peso Grupal',
+            labels={'date': 'Fecha', 'weight': 'Peso (kg)', 'username': 'Ninja'}
         )
-
-        # Crear DataFrame base con todas las combinaciones
-        daily_points = pd.DataFrame(index=date_user_combinations).reset_index()
-
-        # Merge con los puntos reales
-        points_data = df_mes.groupby(['Fecha', 'Usuario'])['Puntos'].sum().reset_index()
-        daily_points = daily_points.merge(
-            points_data,
-            on=['Fecha', 'Usuario'],
-            how='left'
+        
+        # Configurar el formato de las fechas y asegurar el orden correcto
+        fig.update_traces(mode='lines+markers')
+        fig.update_xaxes(
+            tickformat='%Y-%m-%d',
+            tickangle=45,
+            type='date',
+            tickmode='auto',
+            nticks=20
         )
-
-        # Rellenar NaN con 0
-        daily_points['Puntos'] = daily_points['Puntos'].fillna(0)
-
-        # Ordenar y calcular acumulados
-        daily_points = daily_points.sort_values(['Usuario', 'Fecha'])
-        daily_points['Puntos_Acumulados'] = daily_points.groupby('Usuario')['Puntos'].cumsum()
-
-        fig_line = px.line(
-            daily_points,
-            x='Fecha',
-            y='Puntos_Acumulados',
-            color='Usuario',
-            title='Progreso Acumulado del Mes',
-            labels={
-                'Fecha': 'Día',
-                'Puntos_Acumulados': 'Puntos Acumulados',
-                'Usuario': 'Ninja'
-            }
-        )
-        fig_line.update_traces(mode='lines+markers')
-        fig_line.update_layout(
+        
+        # Mejorar el diseño general del gráfico
+        fig.update_layout(
             hovermode='x unified',
-            yaxis_title="Puntos Totales"
+            xaxis_title="Fecha",
+            yaxis_title="Peso (kg)",
+            legend_title="Ninja",
+            height=500  # Hacer el gráfico un poco más alto para mejor visualización
         )
-        st.plotly_chart(fig_line)
-
-        # Heatmap de actividad
-        st.header("📅 Mapa de Calor - Actividad")
-        heatmap_data = df_mes.pivot_table(
-            values='Puntos',
-            index='Usuario',
-            columns=df_mes['Fecha'].dt.strftime('%d'),
-            aggfunc='sum',
-            fill_value=0
-        )
-        fig_heat = px.imshow(
-            heatmap_data,
-            title='Actividad Diaria por Usuario',
-            labels=dict(x="Día del Mes", y="Usuario", color="Puntos"),
-            color_continuous_scale="Viridis",
-            zmin=0,  # Establecer el mínimo del rango
-            zmax=4  # Establecer el máximo del rango
-        )
-        st.plotly_chart(fig_heat)
-
-    else:
-        st.info("No hay registros para este mes")
+        
+        st.plotly_chart(fig)
 
 
 if __name__ == "__main__":

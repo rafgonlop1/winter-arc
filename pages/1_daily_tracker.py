@@ -5,6 +5,8 @@ import plotly.express as px
 import streamlit as st
 
 from utils.data_manager import cargar_datos, guardar_datos, get_week_dates
+from utils.user_manager import get_users, update_target_weight
+from utils.weight_manager import load_weight_records, save_weight_record
 
 
 def mostrar_historial(df, usuario, fecha_actual):
@@ -160,6 +162,74 @@ def main():
         guardar_datos(df)
         st.success("Registro guardado exitosamente")
         st.rerun()
+
+    # Mover la sección de peso aquí, antes del historial
+    st.markdown("---")
+    st.subheader("🏋️ Seguimiento de Peso")
+    
+    # Cargar datos de usuario
+    users_df = get_users()
+    user_data = users_df[users_df['username'] == st.session_state.usuario].iloc[0]
+    target_weight = user_data.get('target_weight')
+
+    col1, col2 = st.columns(2)
+    with col1:
+        # Input para el peso actual
+        weight = st.number_input(
+            "Peso actual (kg)",
+            min_value=20.0,
+            max_value=250.0,
+            step=0.1,
+            help="Ingresa tu peso actual en kilogramos"
+        )
+
+    with col2:
+        # Input/display del peso objetivo
+        new_target = st.number_input(
+            "Peso objetivo (kg)",
+            min_value=20.0,
+            max_value=250.0,
+            value=float(target_weight) if target_weight else 70.0,
+            step=0.1,
+            help="Establece tu peso objetivo"
+        )
+
+    if new_target != target_weight:
+        if st.button("Actualizar peso objetivo"):
+            update_target_weight(st.session_state.usuario, new_target)
+            st.success("Peso objetivo actualizado")
+            st.rerun()
+
+    if st.button("Registrar peso"):
+        save_weight_record(st.session_state.usuario, fecha_str, weight)
+        st.success("Peso registrado exitosamente")
+        st.rerun()
+
+    # Mostrar gráfico de progreso de peso
+    weight_records = load_weight_records()
+    user_weights = weight_records[weight_records['username'] == st.session_state.usuario].copy()
+    if not user_weights.empty:
+        user_weights['date'] = pd.to_datetime(user_weights['date'])
+        user_weights = user_weights.sort_values('date')
+        
+        fig = px.line(
+            user_weights,
+            x='date',
+            y='weight',
+            title='Progreso de Peso',
+            labels={'date': 'Fecha', 'weight': 'Peso (kg)'}
+        )
+        
+        if target_weight:
+            fig.add_hline(
+                y=float(target_weight),
+                line_dash="dash",
+                line_color="red",
+                annotation_text="Objetivo"
+            )
+        
+        fig.update_traces(mode='lines+markers')
+        st.plotly_chart(fig)
 
     # Mostrar historial y estadísticas
     st.markdown("---")
