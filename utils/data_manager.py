@@ -1,8 +1,7 @@
 import os
-import pandas as pd
 from datetime import datetime, timedelta
 
-from utils.database import SessionLocal, Activity, User
+import pandas as pd
 
 DATA_FILE = 'data/registros.csv'
 

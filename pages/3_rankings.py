@@ -1,35 +1,36 @@
+from datetime import datetime
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from datetime import datetime, timedelta
 
 from utils.data_manager import cargar_datos, asignar_rango
-from utils.user_manager import get_users
+
 
 def get_users_with_gaps(df):
     """
     Identifica usuarios que tienen días sin registros entre su primer y último registro
     """
     users_with_gaps = []
-    
+
     # Obtener la fecha más reciente de todos los registros
     latest_date = df['Fecha'].max()
-    
+
     # Analizar cada usuario
     for username in df['Usuario'].unique():
         user_records = df[df['Usuario'] == username]
         first_date = user_records['Fecha'].min()
         last_date = user_records['Fecha'].max()
-        
+
         # Crear un rango de fechas desde el primer registro hasta el último
         date_range = pd.date_range(start=first_date, end=last_date)
-        
+
         # Obtener las fechas en las que el usuario tiene registros
         user_dates = set(user_records['Fecha'].dt.date)
-        
+
         # Encontrar días faltantes
         missing_dates = [d.date() for d in date_range if d.date() not in user_dates]
-        
+
         if missing_dates:
             users_with_gaps.append({
                 'username': username,
@@ -38,8 +39,9 @@ def get_users_with_gaps(df):
                 'first_date': first_date.strftime('%Y-%m-%d'),
                 'last_date': last_date.strftime('%Y-%m-%d')
             })
-    
+
     return users_with_gaps
+
 
 def main():
     st.title("🏆 Rankings")
@@ -68,18 +70,19 @@ def main():
 
     # Rankings por tipo de actividad
     st.header("🎯 Rankings por Actividad")
-    actividades = ['Ranking General', 'Actividad Física', 'Dieta y Nutrición', 'Descanso o Recuperación', 'Desarrollo Personal']
-    
+    actividades = ['Ranking General', 'Actividad Física', 'Dieta y Nutrición', 'Descanso o Recuperación',
+                   'Desarrollo Personal']
+
     # Crear tabs para cada tipo de actividad
     tabs = st.tabs([f"📊 {actividad}" for actividad in actividades])
-    
+
     # Ranking General
     with tabs[0]:
         st.subheader(f"Ranking General - {datetime.now().strftime('%B %Y')}")
         puntos_usuarios = df_mes.groupby('Usuario')['Puntos'].sum().reset_index()
         puntos_usuarios['Rango'] = puntos_usuarios['Puntos'].apply(asignar_rango)
         puntos_usuarios = puntos_usuarios.sort_values('Puntos', ascending=False)
-        
+
         st.dataframe(
             puntos_usuarios,
             column_config={
@@ -96,7 +99,7 @@ def main():
             # Filtrar datos por actividad y sumar los True
             df_actividad = df_mes.groupby('Usuario')[actividad].sum().reset_index()
             df_actividad = df_actividad.sort_values(actividad, ascending=False)
-            
+
             # Mostrar tabla de ranking para esta actividad
             st.subheader(f"Ranking - {actividad}")
             st.dataframe(
@@ -107,7 +110,7 @@ def main():
                 },
                 hide_index=True
             )
-            
+
             # Gráfico de barras para esta actividad
             fig_actividad = px.bar(
                 df_actividad,
@@ -139,33 +142,33 @@ def main():
 
         # Tendencia de puntos acumulados
         st.header("📈 Progreso del Mes")
-        
+
         # Crear un DataFrame con todas las combinaciones de fechas y usuarios
         all_dates = pd.date_range(df_mes['Fecha'].min(), df_mes['Fecha'].max(), freq='D')
         all_users = df_mes['Usuario'].unique()
         date_user_combinations = pd.MultiIndex.from_product(
-            [all_dates, all_users], 
+            [all_dates, all_users],
             names=['Fecha', 'Usuario']
         )
-        
+
         # Crear DataFrame base con todas las combinaciones
         daily_points = pd.DataFrame(index=date_user_combinations).reset_index()
-        
+
         # Merge con los puntos reales
         points_data = df_mes.groupby(['Fecha', 'Usuario'])['Puntos'].sum().reset_index()
         daily_points = daily_points.merge(
-            points_data, 
-            on=['Fecha', 'Usuario'], 
+            points_data,
+            on=['Fecha', 'Usuario'],
             how='left'
         )
-        
+
         # Rellenar NaN con 0
         daily_points['Puntos'] = daily_points['Puntos'].fillna(0)
-        
+
         # Ordenar y calcular acumulados
         daily_points = daily_points.sort_values(['Usuario', 'Fecha'])
         daily_points['Puntos_Acumulados'] = daily_points.groupby('Usuario')['Puntos'].cumsum()
-        
+
         fig_line = px.line(
             daily_points,
             x='Fecha',
@@ -173,7 +176,7 @@ def main():
             color='Usuario',
             title='Progreso Acumulado del Mes',
             labels={
-                'Fecha': 'Día', 
+                'Fecha': 'Día',
                 'Puntos_Acumulados': 'Puntos Acumulados',
                 'Usuario': 'Ninja'
             }
@@ -200,12 +203,13 @@ def main():
             labels=dict(x="Día del Mes", y="Usuario", color="Puntos"),
             color_continuous_scale="Viridis",
             zmin=0,  # Establecer el mínimo del rango
-            zmax=4   # Establecer el máximo del rango
+            zmax=4  # Establecer el máximo del rango
         )
         st.plotly_chart(fig_heat)
 
     else:
         st.info("No hay registros para este mes")
+
 
 if __name__ == "__main__":
     main()

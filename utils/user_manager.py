@@ -1,4 +1,5 @@
 import os
+
 import pandas as pd
 
 USERS_FILE = 'data/users.csv'

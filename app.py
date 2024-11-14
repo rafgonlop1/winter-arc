@@ -1,9 +1,9 @@
 import io
-import pandas as pd
+import zipfile
+from pathlib import Path
+
 import streamlit as st
 import toml
-from pathlib import Path
-import zipfile
 
 from utils.data_manager import cargar_datos
 from utils.settings import APP_CONFIG
@@ -28,7 +28,7 @@ def download_data():
     """Función para descargar los datos en formato ZIP"""
     # Crear un buffer en memoria para el ZIP
     zip_buffer = io.BytesIO()
-    
+
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         # Añadir registros.csv
         df_registros = cargar_datos()
@@ -36,14 +36,14 @@ def download_data():
             registros_buffer = io.StringIO()
             df_registros.to_csv(registros_buffer, index=False)
             zip_file.writestr('registros.csv', registros_buffer.getvalue())
-        
+
         # Añadir users.csv
         df_users = get_users()
         if not df_users.empty:
             users_buffer = io.StringIO()
             df_users.to_csv(users_buffer, index=False)
             zip_file.writestr('users.csv', users_buffer.getvalue())
-    
+
     zip_buffer.seek(0)
     return zip_buffer.getvalue()
 
