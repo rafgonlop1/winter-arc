@@ -14,8 +14,6 @@ try:
         "host": st.secrets["POSTGRES_HOST"],
         "port": st.secrets.get("POSTGRES_PORT", "5432"),
         "database": st.secrets["POSTGRES_DB"],
-        "admin_login": st.secrets["ADMINISTRATOR_LOGIN"],
-        "admin_password": st.secrets["ADMINISTRATOR_LOGIN_PASSWORD"]
     }
 except Exception as e:
     # Fallback a variables de entorno si no hay secrets de Streamlit disponibles
@@ -25,8 +23,6 @@ except Exception as e:
         "host": os.getenv("POSTGRES_HOST"),
         "port": os.getenv("POSTGRES_PORT", "5432"),
         "database": os.getenv("POSTGRES_DB"),
-        "admin_login": os.getenv("ADMINISTRATOR_LOGIN"),
-        "admin_password": os.getenv("ADMINISTRATOR_LOGIN_PASSWORD")
     }
     print("No Streamlit secrets found.")
     print(st.secrets)
