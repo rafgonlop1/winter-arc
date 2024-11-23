@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -13,8 +12,9 @@ DB_CONFIG = {
     "host": os.getenv("POSTGRES_HOST"),
     "port": os.getenv("POSTGRES_PORT", "5432"),
     "database": os.getenv("POSTGRES_DB"),
+    "admin_login": os.getenv("ADMINISTRATOR_LOGIN"),
+    "admin_password": os.getenv("ADMINISTRATOR_LOGIN_PASSWORD")
 }
-
 # Construir URL de conexión
 DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
 
@@ -38,6 +38,9 @@ APP_CONFIG = {
     "layout": "wide"
 }
 
-# Paths
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
+POINTS_PER_ACTIVITY = {
+    'physical_activity': 1,
+    'diet_nutrition': 1,
+    'rest_recovery': 1,
+    'personal_development': 1
+}
