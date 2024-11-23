@@ -17,7 +17,7 @@ try:
         "admin_login": st.secrets["ADMINISTRATOR_LOGIN"],
         "admin_password": st.secrets["ADMINISTRATOR_LOGIN_PASSWORD"]
     }
-except Exception:
+except Exception as e:
     # Fallback a variables de entorno si no hay secrets de Streamlit disponibles
     DB_CONFIG = {
         "user": os.getenv("POSTGRES_USER"),
@@ -28,6 +28,9 @@ except Exception:
         "admin_login": os.getenv("ADMINISTRATOR_LOGIN"),
         "admin_password": os.getenv("ADMINISTRATOR_LOGIN_PASSWORD")
     }
+    print("No Streamlit secrets found.")
+    print(st.secrets)
+    raise e
 # Construir URL de conexión
 DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
 
