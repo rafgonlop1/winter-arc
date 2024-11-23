@@ -10,6 +10,10 @@ from winter.settings import POINTS_PER_ACTIVITY
 
 
 def ranking_page():
+    if 'authenticated' not in st.session_state or not st.session_state['authenticated']:
+        st.error("Por favor, inicia sesión para acceder a esta página.")
+        return
+
     st.title("🏆 Clasificación y Ranking")
 
     session = get_session()
@@ -120,8 +124,10 @@ def ranking_page():
         fig_activity = px.bar(df_activity, x='username', y='points', text='points',
                               labels={'username': 'Usuario', 'points': 'Puntos'},
                               title=f"Clasificación - {activity_labels[selected_activity]}")
-        # Agregar rango como etiqueta encima de las barras
-        fig_activity.update_traces(texttemplate='Posición %{Rango}: %{text}', textposition='outside')
+        # Corregir el formato del texto sobre las barras
+        fig_activity.update_traces(texttemplate='Posición %{customdata}: %{text} pts', 
+                                 textposition='outside',
+                                 customdata=df_activity.index)  # Usar el índice como posición
         fig_activity.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
 
         st.plotly_chart(fig_activity, use_container_width=True)
@@ -185,13 +191,16 @@ def ranking_page():
 
             fig = px.imshow(df_pivot,
                             labels=dict(x="Fecha", y="Usuario", color="Puntos"),
-                            x=[d.strftime('%Y-%m-%d') for d in df_pivot.columns],
+                            x=[d.strftime('%d') for d in df_pivot.columns],
                             y=df_pivot.index,
                             aspect="auto",
                             color_continuous_scale='Viridis')
 
-            # Ajustar el eje X para mostrar todas las fechas
+            # Ajustar el eje X para mostrar todas las fechas y añadir título con mes/año
             fig.update_xaxes(type='category')
+            fig.update_layout(
+                title=f"Actividad diaria - {start_date.strftime('%B %Y')}"
+            )
 
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -220,6 +229,23 @@ def ranking_page():
         st.plotly_chart(fig_weight, use_container_width=True)
     else:
         st.info("No hay datos de peso disponibles.")
+
+    # Agregar versión en el sidebar
+    with st.sidebar:
+        try:
+            import toml
+            with open("pyproject.toml", "r") as f:
+                project_data = toml.load(f)
+                version = project_data["tool"]["poetry"]["version"]
+            st.markdown(
+                f"<div style='text-align: center; color: rgba(250, 250, 250, 0.4);'>v{version} by @rafaelbenzal96</div>", 
+                unsafe_allow_html=True
+            )
+        except Exception:
+            st.markdown(
+                "<div style='text-align: center; color: rgba(250, 250, 250, 0.4);'>Version no disponible</div>",
+                unsafe_allow_html=True
+            )
 
     session.close()
 

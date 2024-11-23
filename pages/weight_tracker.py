@@ -8,6 +8,10 @@ from winter.modules.database import get_session, WeightEntry
 
 
 def main():
+    if 'authenticated' not in st.session_state or not st.session_state['authenticated']:
+        st.error("Por favor, inicia sesión para acceder a esta página.")
+        return
+
     st.title("📊 Seguimiento de Peso")
 
     # Formulario para ingresar el peso
@@ -44,7 +48,7 @@ def main():
     session.close()
 
     if entries:
-        # Preparar datos para el gráfico
+        # Preparar datos para el grfico
         dates = [entry.date for entry in entries]
         weights = [entry.weight for entry in entries]
 
@@ -77,7 +81,7 @@ def main():
             if filtered_data:
                 filtered_dates, filtered_weights = zip(*filtered_data)
 
-                # Crear y mostrar el gráfico
+                # Crear y mostrar el grfico
                 fig = px.line(
                     x=filtered_dates,
                     y=filtered_weights,
@@ -85,7 +89,7 @@ def main():
                     title='Progreso de Peso'
                 )
 
-                # Agregar línea horizontal para el peso objetivo si se ha establecido
+                # Agregar lnea horizontal para el peso objetivo si se ha establecido
                 if target_weight > 0:
                     fig.add_hline(
                         y=target_weight,
@@ -103,4 +107,20 @@ def main():
 
 
 if __name__ == "__main__":
+    # Agregar versión en el sidebar
+    with st.sidebar:
+        try:
+            import toml
+            with open("pyproject.toml", "r") as f:
+                project_data = toml.load(f)
+                version = project_data["tool"]["poetry"]["version"]
+            st.markdown(
+                f"<div style='text-align: center; color: rgba(250, 250, 250, 0.4);'>v{version} by @rafaelbenzal96</div>", 
+                unsafe_allow_html=True
+            )
+        except Exception:
+            st.markdown(
+                "<div style='text-align: center; color: rgba(250, 250, 250, 0.4);'>Version no disponible</div>",
+                unsafe_allow_html=True
+            )
     main()

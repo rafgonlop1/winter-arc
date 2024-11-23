@@ -166,4 +166,21 @@ def daily_tracker():
     st.plotly_chart(fig, use_container_width=True)
 
 
+# Agregar versión en el sidebar
+with st.sidebar:
+    try:
+        import toml
+        with open("pyproject.toml", "r") as f:
+            project_data = toml.load(f)
+            version = project_data["tool"]["poetry"]["version"]
+        st.markdown(
+            f"<div style='text-align: center; color: rgba(250, 250, 250, 0.4);'>v{version} by @rafaelbenzal96</div>", 
+            unsafe_allow_html=True
+        )
+    except Exception:
+        st.markdown(
+            "<div style='text-align: center; color: rgba(250, 250, 250, 0.4);'>Version no disponible</div>",
+            unsafe_allow_html=True
+        )
+
 daily_tracker()
