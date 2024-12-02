@@ -16,6 +16,28 @@ def ranking_page():
 
     st.title("🏆 Clasificación y Ranking")
 
+    # Añadir selector de mes
+    today = date.today()
+    current_month = today.replace(day=1)
+    available_months = pd.date_range(
+        start=date(2024, 1, 1),  # Ajusta esta fecha según necesites
+        end=today,
+        freq='MS'
+    )
+    selected_month = st.selectbox(
+        "Selecciona mes",
+        options=available_months,
+        format_func=lambda x: x.strftime('%B %Y'),
+        index=len(available_months)-1
+    )
+    
+    # Calcular primer y último día del mes seleccionado
+    first_day = selected_month
+    if selected_month.month == 12:
+        last_day = date(selected_month.year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = date(selected_month.year, selected_month.month + 1, 1) - timedelta(days=1)
+
     session = get_session()
 
     RANK_THRESHOLDS = {
@@ -57,7 +79,12 @@ def ranking_page():
         func.sum(func.coalesce(
             DailyActivity.personal_development.cast(Integer) * POINTS_PER_ACTIVITY['personal_development'], 0)).label(
             'personal_development_points'),
-    ).join(User).group_by(User.username, DailyActivity.user_id).all()
+    ).join(User).filter(
+        and_(
+            DailyActivity.date >= first_day,
+            DailyActivity.date <= last_day
+        )
+    ).group_by(User.username, DailyActivity.user_id).all()
 
     # Crear una lista para almacenar los datos de puntos
     leaderboard_data = []
@@ -95,7 +122,7 @@ def ranking_page():
                             color='Rango',
                             color_discrete_map=RANK_COLORS,
                             labels={'username': 'Usuario', 'total_points': 'Puntos Totales'},
-                            title='Clasificación Global')
+                            title=f'Clasificación Global - {selected_month.strftime("%B %Y")}')
         fig_global.update_traces(texttemplate='%{text} pts<br>%{customdata[0]}',
                                  textposition='outside',
                                  customdata=df_global[['Rango']])
@@ -123,7 +150,7 @@ def ranking_page():
         # Gráfico de barras
         fig_activity = px.bar(df_activity, x='username', y='points', text='points',
                               labels={'username': 'Usuario', 'points': 'Puntos'},
-                              title=f"Clasificación - {activity_labels[selected_activity]}")
+                              title=f"Clasificación - {activity_labels[selected_activity]} - {selected_month.strftime('%B %Y')}")
         # Corregir el formato del texto sobre las barras
         fig_activity.update_traces(texttemplate='Posición %{customdata}: %{text} pts', 
                                  textposition='outside',
@@ -135,14 +162,7 @@ def ranking_page():
     # Mapa de calor diario
     st.subheader("Mapa de Calor Diario")
 
-    # Calcular primer y último día del mes actual
-    today = date.today()
-    first_day = date(today.year, today.month, 1)
-    if today.month == 12:
-        last_day = date(today.year + 1, 1, 1) - timedelta(days=1)
-    else:
-        last_day = date(today.year, today.month + 1, 1) - timedelta(days=1)
-
+    # Usar las fechas del mes seleccionado por defecto
     start_date = st.date_input("Fecha de inicio", value=first_day)
     end_date = st.date_input("Fecha de fin", value=last_day)
 
